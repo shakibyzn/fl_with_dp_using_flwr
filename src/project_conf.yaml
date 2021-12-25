@@ -1,0 +1,16 @@
+# INITIAL SETTINGS
+data_root: ./data
+
+
+# PRIVACY PARAMETERS
+delta: 1.0e-5
+epsilon: 10.0
+max_grad_norm: 1.0
+
+
+# NN MODEL PARAMETERS
+input_size: 784
+output_size: 10
+hidden_sizes: [128, 64]
+lr: 0.002
+batch_size: 64
