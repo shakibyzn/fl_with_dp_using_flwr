@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -10,7 +11,6 @@ from torch.utils import data
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.transforms.transforms import Compose, Normalize, ToTensor
-
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -41,7 +41,7 @@ def build_model(input_size: int, output_size: int, hidden_sizes: list) -> nn.Seq
 
 def train(model, trainloader: DataLoader, optimizer, scheduler, privacy_engine, epochs: int=3, tag="centralized") -> None:
     """Train the network on the training set."""
-    config = load_config("project_conf.yaml")
+    config = load_config("src/project_conf.yaml")
     model.train()
     writer = SummaryWriter(f"runs/{tag}")
     criterion = nn.NLLLoss()

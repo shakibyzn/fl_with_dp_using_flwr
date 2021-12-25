@@ -50,7 +50,7 @@ def main():
     )
     args = parser.parse_args()
     # load config file
-    config = load_config("project_conf.yaml")
+    config = load_config("src/project_conf.yaml")
     # Load model
     model = build_model(config["input_size"], config["output_size"], config["hidden_sizes"]).to(DEVICE)
     # load data, we are training locally because FedAvg was proven to not converge on non-IID datasets.
