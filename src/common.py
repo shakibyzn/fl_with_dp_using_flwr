@@ -1,35 +1,50 @@
-import os
-from typing import Dict, List, Tuple
+from typing import Tuple
 
-import numpy as np
 import torch
 import torch.nn as nn
-import torchvision
 import yaml
 from opacus.utils.batch_memory_manager import BatchMemoryManager
-from torch.utils import data
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.datasets import MNIST
 from torchvision.transforms.transforms import Compose, Normalize, ToTensor
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def load_config(config_name):
     with open(config_name) as f:
         config = yaml.safe_load(f)
     return config
 
-def load_data(data_root: str, batch_size: int) -> Tuple[DataLoader, DataLoader, Dict[str, str]]:
+
+def load_data(data_root: str,
+              batch_size: int) -> Tuple[DataLoader, DataLoader]:
     """Loading train and test datasets"""
     transform = Compose([ToTensor(), Normalize((0.5,), (0.5,))])
-    train_dataset = torchvision.datasets.MNIST(root=data_root, train=True, download=True, transform=transform)
-    test_dataset = torchvision.datasets.MNIST(root=data_root, train=False, download=True, transform=transform)
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
-    num_examples = {"trainset": len(train_dataset), "testset": len(test_dataset)}
-    return train_loader, test_loader, num_examples
+    train_dataset = MNIST(root=data_root,
+                          train=True,
+                          download=True,
+                          transform=transform)
+    test_dataset = MNIST(root=data_root,
+                         train=False,
+                         download=True,
+                         transform=transform)
+    train_loader = DataLoader(train_dataset,
+                              batch_size=batch_size,
+                              shuffle=True,
+                              num_workers=2)
+    test_loader = DataLoader(test_dataset,
+                             batch_size=batch_size,
+                             shuffle=False,
+                             num_workers=2)
 
-def build_model(input_size: int, output_size: int, hidden_sizes: list) -> nn.Sequential:
+    return train_loader, test_loader
+
+
+def build_model(input_size: int,
+                output_size: int,
+                hidden_sizes: list) -> nn.Sequential:
     """Create the neural network model"""
     return nn.Sequential(
                       nn.Linear(input_size, hidden_sizes[0]),
@@ -39,7 +54,14 @@ def build_model(input_size: int, output_size: int, hidden_sizes: list) -> nn.Seq
                       nn.Linear(hidden_sizes[1], output_size),
                       nn.LogSoftmax(dim=1))
 
-def train(model, trainloader: DataLoader, optimizer, scheduler, privacy_engine, epochs: int=3, tag="centralized") -> None:
+
+def train(model,
+          trainloader: DataLoader,
+          optimizer,
+          scheduler,
+          privacy_engine,
+          epochs: int = 3,
+          tag="centralized") -> None:
     """Train the network on the training set."""
     config = load_config("src/project_conf.yaml")
     model.train()
@@ -54,7 +76,7 @@ def train(model, trainloader: DataLoader, optimizer, scheduler, privacy_engine, 
             data_loader=trainloader,
             max_physical_batch_size=64,
             optimizer=optimizer) as memory_safe_data_loader:
-            for i , (image, label) in enumerate(memory_safe_data_loader):
+            for i, (image, label) in enumerate(memory_safe_data_loader):
                 optimizer.zero_grad()
                 image, label = image.to(DEVICE), label.to(DEVICE)
                 image = image.view(image.shape[0], -1)
@@ -80,6 +102,7 @@ def train(model, trainloader: DataLoader, optimizer, scheduler, privacy_engine, 
                 n_iter += 1
             scheduler.step()
             return running_loss, running_acc, num_samples
+
 
 def test(model, testloader: DataLoader) -> Tuple[float, float, int]:
     """Test the network on the test set"""
